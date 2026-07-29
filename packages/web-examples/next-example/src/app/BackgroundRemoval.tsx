@@ -20,7 +20,7 @@ const BackgroundRemoval = () => {
   const [startDate, setStartDate] = useState(Date.now());
   const [caption, setCaption] = useState('Click "Upload Image" to start');
   const [progress, setProgress] = useState(0);
-  const [backgroundColor, setBackgroundColor] = useState('#ffffff');
+  const [backgroundColor, setBackgroundColor] = useState('#A8C8F0');
   const [customBackground, setCustomBackground] = useState<string | null>(null);
   const [showBgSection, setShowBgSection] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -142,7 +142,6 @@ const BackgroundRemoval = () => {
     }
   };
 
-  // 保存图片
   const handleSave = () => {
     if (!imageUrl) {
       setCaption('No image to save.');
@@ -158,21 +157,37 @@ const BackgroundRemoval = () => {
     setCaption('Image saved!');
   };
 
-  // 上传自定义背景图
+  // ✅ 修复后的背景图上传函数
   const handleBackgroundUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // 限制文件类型为图片
+    if (!file.type.startsWith('image/')) {
+      setCaption('Please select an image file.');
+      return;
+    }
+
     const reader = new FileReader();
+    
     reader.onload = (event) => {
       const url = event.target?.result as string;
+      console.log('Background image loaded:', url.substring(0, 50) + '...');
       setCustomBackground(url);
-      setCaption('Custom background selected. Click "Apply Background" to see result.');
+      setBackgroundColor('#ffffff'); // 重置纯色选择
+      setCaption('Custom background selected! Click "Apply Background" to see result.');
     };
+
+    reader.onerror = () => {
+      setCaption('Failed to read the file. Please try again.');
+    };
+
     reader.readAsDataURL(file);
+    
+    // 重置 input 值，允许重复选择同一文件
+    e.target.value = '';
   };
 
-  // 合成背景
   const compositeWithBackground = async () => {
     if (!processedBlob) {
       setCaption('Please process an image first.');
@@ -192,7 +207,6 @@ const BackgroundRemoval = () => {
       canvas.height = img.height;
       const ctx = canvas.getContext('2d')!;
 
-      // 绘制背景
       if (customBackground) {
         const bgImg = new window.Image();
         bgImg.src = customBackground;
@@ -203,10 +217,8 @@ const BackgroundRemoval = () => {
         ctx.fillRect(0, 0, canvas.width, canvas.height);
       }
 
-      // 绘制前景（抠好的图）
       ctx.drawImage(img, 0, 0);
 
-      // 转换为 Blob
       const blob = await new Promise<Blob>((resolve) => {
         canvas.toBlob((b) => resolve(b!), 'image/png');
       });
@@ -226,10 +238,8 @@ const BackgroundRemoval = () => {
     <div style={{ maxWidth: '800px', margin: '2rem auto', padding: '1rem', fontFamily: 'sans-serif' }}>
       <h1 style={{ textAlign: 'center' }}>Background Removal Demo</h1>
 
-      {/* 隐藏的 Canvas */}
       <canvas ref={canvasRef} style={{ display: 'none' }} />
 
-      {/* 上传和保存按钮 */}
       <div style={{ textAlign: 'center', marginBottom: '1rem', display: 'flex', gap: '1rem', justifyContent: 'center' }}>
         <label
           htmlFor="upload"
@@ -270,7 +280,6 @@ const BackgroundRemoval = () => {
         )}
       </div>
 
-      {/* 图片展示 */}
       <div
         style={{
           textAlign: 'center',
@@ -294,7 +303,6 @@ const BackgroundRemoval = () => {
         )}
       </div>
 
-      {/* 状态和进度 */}
       <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
         <p style={{ fontWeight: 'bold' }}>{caption}</p>
         {isRunning && (
@@ -322,7 +330,6 @@ const BackgroundRemoval = () => {
         )}
       </div>
 
-      {/* 处理按钮 */}
       <div
         style={{
           textAlign: 'center',
@@ -365,7 +372,6 @@ const BackgroundRemoval = () => {
         </button>
       </div>
 
-      {/* 背景替换区域（处理完成后显示） */}
       {showBgSection && processedBlob && (
         <div
           style={{
@@ -377,7 +383,6 @@ const BackgroundRemoval = () => {
         >
           <h3 style={{ textAlign: 'center', marginTop: 0 }}>Replace Background</h3>
 
-          {/* 纯色背景选择 */}
           <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
             <p style={{ marginBottom: '0.5rem' }}>Choose a color:</p>
             <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -413,7 +418,6 @@ const BackgroundRemoval = () => {
             </div>
           </div>
 
-          {/* 自定义背景图上传 */}
           <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
             <p style={{ marginBottom: '0.5rem' }}>Or upload a custom background:</p>
             <label
@@ -438,7 +442,6 @@ const BackgroundRemoval = () => {
             />
           </div>
 
-          {/* 应用背景按钮 */}
           <div style={{ textAlign: 'center' }}>
             <button
               onClick={compositeWithBackground}
