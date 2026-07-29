@@ -1,8 +1,7 @@
-// ./src/app/BackgroundRemoval.tsx
-'use client'; // 确保是客户端组件
+'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import Image from 'next/image'; // 使用 Next.js 的 Image 组件更安全
+import Image from 'next/image';
 
 const images = [
   'https://images.unsplash.com/photo-1682687220742-aba13b6e50ba?auto=format&fit=crop&q=80&w=1000&ixlib=rb-4.0.3&ixid=M3wxMjA3fDF8MHxwaG90by1wYWdlfHx8fDE2OTYwNjk1NTN8fHx8&auto=compress&cs=tinysrgb',
@@ -14,12 +13,12 @@ const images = [
 
 const BackgroundRemoval = () => {
   const [imageUrl, setImageUrl] = useState<string>('');
-  const [originalImage, setOriginalImage] = useState<string>(''); // 保存原图
+  const [originalImage, setOriginalImage] = useState<string>('');
   const [isRunning, setIsRunning] = useState(false);
   const [seconds, setSeconds] = useState('0');
   const [startDate, setStartDate] = useState(Date.now());
   const [caption, setCaption] = useState('Click "Upload Image" to start');
-  const [progress, setProgress] = useState(0); // 进度条用
+  const [progress, setProgress] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const config = {
@@ -41,7 +40,6 @@ const BackgroundRemoval = () => {
   const diff = (start: number, end: number) =>
     ((end - start) / 1000).toFixed(1);
 
-  // 初始化：加载一张随机图
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const imageParam = params.get('image');
@@ -68,7 +66,6 @@ const BackgroundRemoval = () => {
     };
   }, []);
 
-  // 计时器
   useEffect(() => {
     if (isRunning) {
       intervalRef.current = setInterval(() => {
@@ -82,7 +79,6 @@ const BackgroundRemoval = () => {
     };
   }, [isRunning, startDate]);
 
-  // 上传图片
   const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -98,7 +94,6 @@ const BackgroundRemoval = () => {
     reader.readAsDataURL(file);
   };
 
-  // 处理图片
   const handleLoad = async (type: string) => {
     if (!originalImage) {
       setCaption('Please upload an image first.');
@@ -108,7 +103,7 @@ const BackgroundRemoval = () => {
     setIsRunning(true);
     setStartDate(Date.now());
     setSeconds('0');
-    setImageUrl(originalImage); // 重置显示为原图
+    setImageUrl(originalImage);
     setProgress(0);
     setCaption('Starting...');
 
@@ -138,12 +133,21 @@ const BackgroundRemoval = () => {
   };
 
   return (
-    <div id="app" style={{ maxWidth: '800px', margin: '2rem auto', padding: '1rem', fontFamily: 'sans-serif' }}>
+    <div style={{ maxWidth: '800px', margin: '2rem auto', padding: '1rem', fontFamily: 'sans-serif' }}>
       <h1 style={{ textAlign: 'center' }}>Background Removal Demo</h1>
 
-      {/* 上传按钮 */}
       <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
-        <label htmlFor="upload" style={{ padding: '0.5rem 1rem', backgroundColor: '#0070f3', color: 'white', borderRadius: '4px', cursor: 'pointer' }}>
+        <label
+          htmlFor="upload"
+          style={{
+            padding: '0.5rem 1rem',
+            backgroundColor: '#0070f3',
+            color: 'white',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            display: 'inline-block',
+          }}
+        >
           Upload Image
         </label>
         <input
@@ -155,8 +159,16 @@ const BackgroundRemoval = () => {
         />
       </div>
 
-      {/* 图片容器 */}
-      <div style={{ textAlign: 'center', margin: '2rem 0', minHeight: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div
+        style={{
+          textAlign: 'center',
+          margin: '2rem 0',
+          minHeight: '300px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
         {imageUrl ? (
           <Image
             src={imageUrl}
@@ -166,15 +178,22 @@ const BackgroundRemoval = () => {
             style={{ maxWidth: '100%', height: 'auto', border: '1px solid #ddd', borderRadius: '8px' }}
           />
         ) : (
-          <p style={{ color: '#666' }}>No image loaded yet.
+          <p style={{ color: '#666' }}>No image loaded yet.</p>
         )}
       </div>
 
-      {/* 状态 & 进度 */}
       <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
-        <p style={{ fontWeight: 'bold' }}>{caption}
+        <p style={{ fontWeight: 'bold' }}>{caption}</p>
         {isRunning && (
-          <div style={{ width: '100%', backgroundColor: '#eee', borderRadius: '4px', overflow: 'hidden', marginTop: '0.5rem' }}>
+          <div
+            style={{
+              width: '100%',
+              backgroundColor: '#eee',
+              borderRadius: '4px',
+              overflow: 'hidden',
+              marginTop: '0.5rem',
+            }}
+          >
             <div
               style={{
                 width: `${progress}%`,
@@ -186,9 +205,57 @@ const BackgroundRemoval = () => {
           </div>
         )}
         {!isRunning && progress > 0 && (
-          <p style={{ color: 'green' }}>✅ Processing complete! ({seconds}s)
+          <p style={{ color: 'green' }}>Processing complete! ({seconds}s)</p>
         )}
       </div>
 
-      {/* 操作按钮 */}
-      <div style={{ textAlign: 'center', gap: '1rem', display: 'flex', justifyContent: 'center', flexWrap: '
+      <div
+        style={{
+          textAlign: 'center',
+          gap: '1rem',
+          display: 'flex',
+          justifyContent: 'center',
+          flexWrap: 'wrap',
+        }}
+      >
+        <button
+          disabled={isRunning || !originalImage}
+          onClick={() => handleLoad('remove')}
+          style={{
+            padding: '0.75rem 1.5rem',
+            backgroundColor: isRunning ? '#ccc' : '#28a745',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: isRunning ? 'not-allowed' : 'pointer',
+            fontSize: '1rem',
+          }}
+        >
+          {isRunning ? 'Processing...' : 'Remove Background'}
+        </button>
+
+        <button
+          disabled={isRunning || !originalImage}
+          onClick={() => handleLoad('segment')}
+          style={{
+            padding: '0.75rem 1.5rem',
+            backgroundColor: isRunning ? '#ccc' : '#17a2b8',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: isRunning ? 'not-allowed' : 'pointer',
+            fontSize: '1rem',
+          }}
+        >
+          {isRunning ? 'Processing...' : 'Apply Segmentation Mask'}
+        </button>
+      </div>
+
+      <p style={{ textAlign: 'center', fontSize: '0.875rem', color: '#888', marginTop: '2rem' }}>
+        Powered by @imgly/background-removal | Running on CPU mode
+      </p>
+    </div>
+  );
+};
+
+export default BackgroundRemoval;
