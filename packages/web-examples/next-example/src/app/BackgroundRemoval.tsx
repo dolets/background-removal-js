@@ -26,105 +26,77 @@ const BackgroundRemoval = () => {
     },
     rescale: true,
     device: 'gpu' as const,
-    output: {
-      quality: 0.8,
-      format: 'image/png' as const
-    }
+    output: { quality: 0.8, format: 'image/png' as const }
   };
 
-  const calculateSecondsBetweenDates = (start: number, end: number) => {
-    const milliseconds = end - start;
-    return (milliseconds / 1000.0).toFixed(1);
-  };
+  const diff = (start: number, end: number) =>
+    ((end - start) / 1000).toFixed(1);
 
   useEffect(() => {
-    const url = new URL(window.location.href);
-    const params = new URLSearchParams(url.search);
+    const params = new URLSearchParams(window.location.search);
     const imageParam = params.get('image');
     const auto = params.get('auto');
-
-    const randomImage =
-      imageParam || images[Math.floor(Math.random() * images.length)];
+    const randomImage = imageParam || images[Math.floor(Math.random() * images.length)];
     setImageUrl(randomImage);
 
-    const preloadAssets = async () => {
+    (async () => {
       try {
         const imgly = await import('@imgly/background-removal');
-        const { preload } = imgly.default ?? imgly;
-        await (preload as any)();
-        console.log('Asset preloading succeeded');
-        if (auto) load('remove');
-      } catch (error) {
-        console.error('Asset preloading failed:', error);
+        const mod = (imgly as any).default ?? imgly;
+        await mod.preload();
+        console.log('preload ok');
+        if (auto) handleLoad('remove');
+      } catch (e) {
+        console.error('preload failed', e);
       }
-    };
-
-    preloadAssets();
+    })();
 
     return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
+      if (intervalRef.current) clearInterval(intervalRef.current);
     };
   }, []);
 
   useEffect(() => {
     if (isRunning) {
       intervalRef.current = setInterval(() => {
-        setSeconds(calculateSecondsBetweenDates(startDate, Date.now()));
+        setSeconds(diff(startDate, Date.now()));
       }, 100);
     } else if (intervalRef.current) {
       clearInterval(intervalRef.current);
     }
-
     return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
+      if (intervalRef.current) clearInterval(intervalRef.current);
     };
   }, [isRunning, startDate]);
 
-  const resetTimer = () => {
+  const handleLoad = async (type: string) => {
+    const params = new URLSearchParams(window.location.search);
+    const randomImage =
+      params.get('image') || images[Math.floor(Math.random() * images.length)];
+
     setIsRunning(true);
     setStartDate(Date.now());
     setSeconds('0');
-  };
-
-  const stopTimer = () => {
-    setIsRunning(false);
-  };
-
-  const load = async (type: string) => {
-    const params = new URLSearchParams(window.location.search);
-    const imageParam = params.get('image');
-    const randomImage =
-      imageParam || images[Math.floor(Math.random() * images.length)];
-
-    setIsRunning(true);
-    resetTimer();
     setImageUrl(randomImage);
 
     try {
       const imgly = await import('@imgly/background-removal');
-      const { removeBackground, segmentForeground, applySegmentationMask } = imgly.default ?? imgly;
+      const mod = (imgly as any).default ?? imgly;
 
-      let imageBlob;
+      let blob: Blob;
       if (type === 'remove') {
-        imageBlob = await (removeBackground as any)(randomImage, config);
+        blob = await mod.removeBackground(randomImage, config);
       } else {
-        const maskBlob = await (segmentForeground as any)(randomImage, config);
-        imageBlob = await (applySegmentationMask as any)(randomImage, maskBlob, config);
+        const mask = await mod.segmentForeground(randomImage, config);
+        blob = await mod.applySegmentationMask(randomImage, mask, config);
       }
-
-      const url = URL.createObjectURL(imageBlob);
-      setImageUrl(url);
+      setImageUrl(URL.createObjectURL(blob));
       setCaption('Processing complete!');
-    } catch (error) {
-      console.error('Processing failed:', error);
+    } catch (e) {
+      console.error(e);
       setCaption('Processing failed');
     } finally {
       setIsRunning(false);
-      stopTimer();
     }
   };
 
@@ -132,13 +104,13 @@ const BackgroundRemoval = () => {
     <div id="app">
       <header>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        {imageUrl && <img src={imageUrl} alt="processed image" />}
+        {imageUrl && <img src={imageUrl} alt="result" />}
         <p>{caption}</p>
         <p>Processing: {seconds} s</p>
-        <button disabled={isRunning} onClick={() => load('remove')}>
+        <button disabled={isRunning} onClick={() => handleLoad('remove')}>
           Click me (removeBackground)
         </button>
-        <button disabled={isRunning} onClick={() => load('segment')}>
+        <button disabled={isRunning} onClick={() => handleLoad('segment')}>
           Click me (applySegmentationMask)
         </button>
       </header>
