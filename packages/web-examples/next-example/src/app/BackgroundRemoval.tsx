@@ -1,12 +1,5 @@
 'use client';
 
-import {
-  applySegmentationMask,
-  Config,
-  preload,
-  removeBackground,
-  segmentForeground
-} from '@imgly/background-removal';
 import { useEffect, useRef, useState } from 'react';
 
 const images = [
@@ -24,17 +17,17 @@ const BackgroundRemoval = () => {
   const [caption, setCaption] = useState('Click me to remove background');
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const config: Config = {
+  const config = {
     debug: false,
-    progress: (key, current, total) => {
+    progress: (key: string, current: number, total: number) => {
       const [type, subtype] = key.split(':');
       setCaption(`${type} ${subtype} ${((current / total) * 100).toFixed(0)}%`);
     },
     rescale: true,
-    device: 'gpu',
+    device: 'gpu' as const,
     output: {
       quality: 0.8,
-      format: 'image/png'
+      format: 'image/png' as const
     }
   };
 
@@ -47,7 +40,7 @@ const BackgroundRemoval = () => {
     const url = new URL(window.location.href);
     const params = new URLSearchParams(url.search);
     const imageParam = params.get('image');
-    const auto = params.get('auto') || false;
+    const auto = params.get('auto');
 
     const randomImage =
       imageParam || images[Math.floor(Math.random() * images.length)];
@@ -55,7 +48,8 @@ const BackgroundRemoval = () => {
 
     const preloadAssets = async () => {
       try {
-        await preload(config);
+        const { preload } = await import('@imgly/background-removal');
+        await preload();
         console.log('Asset preloading succeeded');
         if (auto) load('remove');
       } catch (error) {
@@ -109,6 +103,8 @@ const BackgroundRemoval = () => {
     setImageUrl(randomImage);
 
     try {
+      const { removeBackground, segmentForeground, applySegmentationMask } = await import('@imgly/background-removal');
+
       let imageBlob;
       if (type === 'remove') {
         imageBlob = await removeBackground(randomImage, config);
@@ -119,6 +115,7 @@ const BackgroundRemoval = () => {
 
       const url = URL.createObjectURL(imageBlob);
       setImageUrl(url);
+      setCaption('Processing complete!');
     } catch (error) {
       console.error('Processing failed:', error);
       setCaption('Processing failed');
@@ -131,8 +128,8 @@ const BackgroundRemoval = () => {
   return (
     <div id="app">
       <header>
-        {/* // eslint-disable-next-line @next/next/no-img-element */}
-        {imageUrl && <img src={imageUrl} alt="logo" />}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        {imageUrl && <img src={imageUrl} alt="processed image" />}
         <p>{caption}</p>
         <p>Processing: {seconds} s</p>
         <button disabled={isRunning} onClick={() => load('remove')}>
