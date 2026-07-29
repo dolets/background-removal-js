@@ -381,7 +381,7 @@ const BackgroundRemoval = () => {
           <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
             <p style={{ marginBottom: '0.5rem' }}>Choose a color:</p>
             <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-              {['#BDD3FD', '#FFD1DC', '#C1E1C1', '#FFFACD', '#E6E6FA', '#FFE4B5', '#F0F8FF', '#FAF0E6', '#F5F5F5'].map(
+              {['#A8C8F0', '#F0B8C8', '#A8D0A8', '#F5E6A3', '#D0C8F0', '#F5D0A0', '#DCE8F5', '#EDE0D0', '#E8E8E8'].map(
                 (color) => (
                   <div
                     key={color}
