@@ -1,5 +1,6 @@
 'use client';
 
+/* eslint-disable react-hooks/exhaustive-deps */
 import { useEffect, useRef, useState } from 'react';
 
 const images = [
@@ -48,8 +49,9 @@ const BackgroundRemoval = () => {
 
     const preloadAssets = async () => {
       try {
-        const { preload } = await import('@imgly/background-removal');
-        await preload();
+        const imgly = await import('@imgly/background-removal');
+        const { preload } = imgly.default ?? imgly;
+        await (preload as any)();
         console.log('Asset preloading succeeded');
         if (auto) load('remove');
       } catch (error) {
@@ -103,14 +105,15 @@ const BackgroundRemoval = () => {
     setImageUrl(randomImage);
 
     try {
-      const { removeBackground, segmentForeground, applySegmentationMask } = await import('@imgly/background-removal');
+      const imgly = await import('@imgly/background-removal');
+      const { removeBackground, segmentForeground, applySegmentationMask } = imgly.default ?? imgly;
 
       let imageBlob;
       if (type === 'remove') {
-        imageBlob = await removeBackground(randomImage, config);
+        imageBlob = await (removeBackground as any)(randomImage, config);
       } else {
-        const maskBlob = await segmentForeground(randomImage, config);
-        imageBlob = await applySegmentationMask(randomImage, maskBlob, config);
+        const maskBlob = await (segmentForeground as any)(randomImage, config);
+        imageBlob = await (applySegmentationMask as any)(randomImage, maskBlob, config);
       }
 
       const url = URL.createObjectURL(imageBlob);
