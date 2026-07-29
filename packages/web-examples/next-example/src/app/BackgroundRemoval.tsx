@@ -25,8 +25,11 @@ const BackgroundRemoval = () => {
       setCaption(`${type} ${subtype} ${((current / total) * 100).toFixed(0)}%`);
     },
     rescale: true,
-    device: 'gpu' as const,
-    output: { quality: 0.8, format: 'image/png' as const }
+    device: 'wasm' as const,  // 改为 wasm，强制使用 CPU 模式
+    output: {
+      quality: 0.8,
+      format: 'image/png' as const
+    }
   };
 
   const diff = (start: number, end: number) =>
