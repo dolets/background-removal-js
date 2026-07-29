@@ -1,7 +1,7 @@
 'use client';
 
+/* eslint-disable react-hooks/exhaustive-deps */
 import { useEffect, useRef, useState } from 'react';
-import type { Config } from '@imgly/background-removal';
 
 const images = [
   'https://images.unsplash.com/photo-1682687220742-aba13b6e50ba?auto=format&fit=crop&q=80&w=1000&ixlib=rb-4.0.3&ixid=M3wxMjA3fDF8MHxwaG90by1wYWdlfHx8fDE2OTYwNjk1NTN8fHx8&auto=compress&cs=tinysrgb',
@@ -34,15 +34,14 @@ const BackgroundRemoval = () => {
   const [caption, setCaption] = useState('Click me to remove background');
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // 👇👇👇 重点看这里：把 'wasm' 改成了正确的 'cpu' 👇👇👇
-  const config: Config = {
+  const config = {
     debug: false,
     progress: (key: string, current: number, total: number) => {
       const [type, subtype] = key.split(':');
       setCaption(`${type} ${subtype} ${((current / total) * 100).toFixed(0)}%`);
     },
     rescale: true,
-    device: 'cpu', // 修复：原来是 'wasm'，现在改为 'cpu'
+    device: 'cpu' as const,
     output: {
       quality: 0.8,
       format: 'image/png' as const
