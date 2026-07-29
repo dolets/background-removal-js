@@ -1,7 +1,7 @@
 'use client';
 
-/* eslint-disable react-hooks/exhaustive-deps */
 import { useEffect, useRef, useState } from 'react';
+import Image from 'next/image';
 
 const images = [
   'https://images.unsplash.com/photo-1682687220742-aba13b6e50ba?auto=format&fit=crop&q=80&w=1000&ixlib=rb-4.0.3&ixid=M3wxMjA3fDF8MHxwaG90by1wYWdlfHx8fDE2OTYwNjk1NTN8fHx8&auto=compress&cs=tinysrgb',
@@ -12,38 +12,38 @@ const images = [
 ];
 
 const BackgroundRemoval = () => {
-  const [imageUrl, setImageUrl] = useState('');
-  const [originalImage, setOriginalImage] = useState('');
-  const [processedBlob, setProcessedBlob] = useState(null);
+  const [imageUrl, setImageUrl] = useState<string>('');
+  const [originalImage, setOriginalImage] = useState<string>('');
+  const [processedBlob, setProcessedBlob] = useState<Blob | null>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [seconds, setSeconds] = useState('0');
   const [startDate, setStartDate] = useState(Date.now());
   const [caption, setCaption] = useState('Click "Upload Image" to start');
   const [progress, setProgress] = useState(0);
   const [backgroundColor, setBackgroundColor] = useState('#ffffff');
-  const [customBackground, setCustomBackground] = useState(null);
-  const canvasRef = useRef(null);
-  const intervalRef = useRef(null);
+  const [customBackground, setCustomBackground] = useState<string | null>(null);
+  const [showBgSection, setShowBgSection] = useState(false);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const config = {
     debug: false,
-    progress: (key, current, total) => {
+    progress: (key: string, current: number, total: number) => {
       const percent = Math.round((current / total) * 100);
       setProgress(percent);
       const [type, subtype] = key.split(':');
-      setCaption(type + ' ' + subtype + ' ' + percent + '%');
+      setCaption(`${type} ${subtype} ${percent}%`);
     },
     rescale: true,
-    device: 'cpu',
+    device: 'cpu' as const,
     output: {
       quality: 0.8,
-      format: 'image/png',
+      format: 'image/png' as const,
     },
   };
 
-  const diff = (start, end) => {
-    return ((end - start) / 1000).toFixed(1);
-  };
+  const diff = (start: number, end: number) =>
+    ((end - start) / 1000).toFixed(1);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -56,7 +56,7 @@ const BackgroundRemoval = () => {
     (async () => {
       try {
         const imgly = await import('@imgly/background-removal');
-        const mod = imgly.default || imgly;
+        const mod = (imgly as any).default ?? imgly;
         await mod.preload();
         console.log('preload ok');
         if (auto) handleLoad('remove');
@@ -84,24 +84,24 @@ const BackgroundRemoval = () => {
     };
   }, [isRunning, startDate]);
 
-  const handleUpload = (e) => {
+  const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     const reader = new FileReader();
     reader.onload = (event) => {
-      const url = event.target.result;
+      const url = event.target?.result as string;
       setImageUrl(url);
       setOriginalImage(url);
       setProcessedBlob(null);
-      setCustomBackground(null);
+      setShowBgSection(false);
       setCaption('Image uploaded. Click a button to process.');
       setProgress(0);
     };
     reader.readAsDataURL(file);
   };
 
-  const handleLoad = async (type) => {
+  const handleLoad = async (type: string) => {
     if (!originalImage) {
       setCaption('Please upload an image first.');
       return;
@@ -113,13 +113,13 @@ const BackgroundRemoval = () => {
     setImageUrl(originalImage);
     setProgress(0);
     setCaption('Starting...');
-    setCustomBackground(null);
+    setShowBgSection(false);
 
     try {
       const imgly = await import('@imgly/background-removal');
-      const mod = imgly.default || imgly;
+      const mod = (imgly as any).default ?? imgly;
 
-      let blob;
+      let blob: Blob;
       if (type === 'remove') {
         blob = await mod.removeBackground(originalImage, config);
       } else {
@@ -132,6 +132,7 @@ const BackgroundRemoval = () => {
       setImageUrl(resultUrl);
       setCaption('Processing complete!');
       setProgress(100);
+      setShowBgSection(true);
     } catch (e) {
       console.error(e);
       setCaption('Processing failed. Check console for details.');
@@ -141,55 +142,7 @@ const BackgroundRemoval = () => {
     }
   };
 
-  const compositeWithBackground = async () => {
-    if (!processedBlob) {
-      setCaption('Please process an image first.');
-      return;
-    }
-
-    const img = new window.Image();
-    img.src = URL.createObjectURL(processedBlob);
-    await img.decode();
-
-    const canvas = canvasRef.current;
-    canvas.width = img.width;
-    canvas.height = img.height;
-    const ctx = canvas.getContext('2d');
-
-    if (customBackground) {
-      const bgImg = new window.Image();
-      bgImg.src = customBackground;
-      await bgImg.decode();
-      ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
-    } else {
-      ctx.fillStyle = backgroundColor;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-    }
-
-    ctx.drawImage(img, 0, 0);
-
-    canvas.toBlob((blob) => {
-      if (blob) {
-        const url = URL.createObjectURL(blob);
-        setImageUrl(url);
-        setCaption('Background replaced!');
-      }
-    }, 'image/png');
-  };
-
-  const handleBackgroundUpload = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const url = event.target.result;
-      setCustomBackground(url);
-      setCaption('Custom background selected. Click "Apply Background" to see result.');
-    };
-    reader.readAsDataURL(file);
-  };
-
+  // 保存图片
   const handleSave = () => {
     if (!imageUrl) {
       setCaption('No image to save.');
@@ -198,20 +151,86 @@ const BackgroundRemoval = () => {
 
     const link = document.createElement('a');
     link.href = imageUrl;
-    link.download = 'background-removed-' + Date.now() + '.png';
+    link.download = `background-removed-${Date.now()}.png`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     setCaption('Image saved!');
   };
 
-  return (
-    <div style={{ maxWidth: '900px', margin: '2rem auto', padding: '1rem', fontFamily: 'sans-serif' }}>
-      <h1 style={{ textAlign: 'center' }}>Background Removal Tool</h1>
+  // 上传自定义背景图
+  const handleBackgroundUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const url = event.target?.result as string;
+      setCustomBackground(url);
+      setCaption('Custom background selected. Click "Apply Background" to see result.');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // 合成背景
+  const compositeWithBackground = async () => {
+    if (!processedBlob) {
+      setCaption('Please process an image first.');
+      return;
+    }
+
+    setIsRunning(true);
+    setCaption('Applying background...');
+
+    try {
+      const img = new window.Image();
+      img.src = URL.createObjectURL(processedBlob);
+      await img.decode();
+
+      const canvas = canvasRef.current!;
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d')!;
+
+      // 绘制背景
+      if (customBackground) {
+        const bgImg = new window.Image();
+        bgImg.src = customBackground;
+        await bgImg.decode();
+        ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+      } else {
+        ctx.fillStyle = backgroundColor;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+
+      // 绘制前景（抠好的图）
+      ctx.drawImage(img, 0, 0);
+
+      // 转换为 Blob
+      const blob = await new Promise<Blob>((resolve) => {
+        canvas.toBlob((b) => resolve(b!), 'image/png');
+      });
+
+      const url = URL.createObjectURL(blob);
+      setImageUrl(url);
+      setCaption('Background replaced!');
+    } catch (e) {
+      console.error(e);
+      setCaption('Failed to apply background.');
+    } finally {
+      setIsRunning(false);
+    }
+  };
+
+  return (
+    <div style={{ maxWidth: '800px', margin: '2rem auto', padding: '1rem', fontFamily: 'sans-serif' }}>
+      <h1 style={{ textAlign: 'center' }}>Background Removal Demo</h1>
+
+      {/* 隐藏的 Canvas */}
       <canvas ref={canvasRef} style={{ display: 'none' }} />
 
-      <div style={{ textAlign: 'center', marginBottom: '1rem', display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+      {/* 上传和保存按钮 */}
+      <div style={{ textAlign: 'center', marginBottom: '1rem', display: 'flex', gap: '1rem', justifyContent: 'center' }}>
         <label
           htmlFor="upload"
           style={{
@@ -225,7 +244,13 @@ const BackgroundRemoval = () => {
         >
           Upload Image
         </label>
-        <input id="upload" type="file" accept="image/*" onChange={handleUpload} style={{ display: 'none' }} />
+        <input
+          id="upload"
+          type="file"
+          accept="image/*"
+          onChange={handleUpload}
+          style={{ display: 'none' }}
+        />
 
         {imageUrl && (
           <button
@@ -245,6 +270,7 @@ const BackgroundRemoval = () => {
         )}
       </div>
 
+      {/* 图片展示 */}
       <div
         style={{
           textAlign: 'center',
@@ -256,9 +282,11 @@ const BackgroundRemoval = () => {
         }}
       >
         {imageUrl ? (
-          <img
+          <Image
             src={imageUrl}
             alt="Result"
+            width={500}
+            height={500}
             style={{ maxWidth: '100%', height: 'auto', border: '1px solid #ddd', borderRadius: '8px' }}
           />
         ) : (
@@ -266,6 +294,7 @@ const BackgroundRemoval = () => {
         )}
       </div>
 
+      {/* 状态和进度 */}
       <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
         <p style={{ fontWeight: 'bold' }}>{caption}</p>
         {isRunning && (
@@ -280,7 +309,7 @@ const BackgroundRemoval = () => {
           >
             <div
               style={{
-                width: progress + '%',
+                width: `${progress}%`,
                 height: '10px',
                 backgroundColor: '#0070f3',
                 transition: 'width 0.2s',
@@ -289,10 +318,11 @@ const BackgroundRemoval = () => {
           </div>
         )}
         {!isRunning && progress > 0 && (
-          <p style={{ color: 'green' }}>Processing complete! (' + seconds + 's)</p>
+          <p style={{ color: 'green' }}>Processing complete! ({seconds}s)</p>
         )}
       </div>
 
+      {/* 处理按钮 */}
       <div
         style={{
           textAlign: 'center',
@@ -300,7 +330,6 @@ const BackgroundRemoval = () => {
           display: 'flex',
           justifyContent: 'center',
           flexWrap: 'wrap',
-          marginBottom: '2rem',
         }}
       >
         <button
@@ -332,23 +361,25 @@ const BackgroundRemoval = () => {
             fontSize: '1rem',
           }}
         >
-          {isRunning ? 'Processing...' : 'Segment Foreground'}
+          {isRunning ? 'Processing...' : 'Apply Segmentation Mask'}
         </button>
       </div>
 
-      {processedBlob && (
+      {/* 背景替换区域（处理完成后显示） */}
+      {showBgSection && processedBlob && (
         <div
           style={{
             border: '1px solid #ddd',
             borderRadius: '8px',
             padding: '1.5rem',
-            marginTop: '1rem',
+            marginTop: '2rem',
           }}
         >
           <h3 style={{ textAlign: 'center', marginTop: 0 }}>Replace Background</h3>
 
+          {/* 纯色背景选择 */}
           <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
-            <p style={{ marginBottom: '0.5rem' }}>Solid Color:</p>
+            <p style={{ marginBottom: '0.5rem' }}>Choose a color:</p>
             <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', flexWrap: 'wrap' }}>
               {['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff', '#ffffff', '#000000', '#808080'].map(
                 (color) => (
@@ -364,7 +395,7 @@ const BackgroundRemoval = () => {
                       backgroundColor: color,
                       borderRadius: '50%',
                       cursor: 'pointer',
-                      border: backgroundColor === color ? '3px solid #333' : '2px solid transparent',
+                      border: backgroundColor === color && !customBackground ? '3px solid #333' : '2px solid transparent',
                       display: 'inline-block',
                     }}
                   />
@@ -377,13 +408,14 @@ const BackgroundRemoval = () => {
                   setBackgroundColor(e.target.value);
                   setCustomBackground(null);
                 }}
-                style={{ width: '30px', height: '30px', cursor: 'pointer', border: 'none' }}
+                style={{ width: '30px', height: '30px', cursor: 'pointer', border: 'none', padding: 0 }}
               />
             </div>
           </div>
 
+          {/* 自定义背景图上传 */}
           <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
-            <p style={{ marginBottom: '0.5rem' }}>Or upload a custom background image:</p>
+            <p style={{ marginBottom: '0.5rem' }}>Or upload a custom background:</p>
             <label
               htmlFor="bg-upload"
               style={{
@@ -395,25 +427,33 @@ const BackgroundRemoval = () => {
                 display: 'inline-block',
               }}
             >
-              Choose Background Image
+              Choose Image
             </label>
-            <input id="bg-upload" type="file" accept="image/*" onChange={handleBackgroundUpload} style={{ display: 'none' }} />
+            <input
+              id="bg-upload"
+              type="file"
+              accept="image/*"
+              onChange={handleBackgroundUpload}
+              style={{ display: 'none' }}
+            />
           </div>
 
+          {/* 应用背景按钮 */}
           <div style={{ textAlign: 'center' }}>
             <button
               onClick={compositeWithBackground}
+              disabled={isRunning}
               style={{
                 padding: '0.75rem 2rem',
-                backgroundColor: '#fd7e14',
+                backgroundColor: isRunning ? '#ccc' : '#fd7e14',
                 color: 'white',
                 border: 'none',
                 borderRadius: '4px',
-                cursor: 'pointer',
+                cursor: isRunning ? 'not-allowed' : 'pointer',
                 fontSize: '1rem',
               }}
             >
-              Apply Background
+              {isRunning ? 'Applying...' : 'Apply Background'}
             </button>
           </div>
         </div>
