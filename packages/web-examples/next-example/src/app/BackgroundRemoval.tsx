@@ -1,13 +1,29 @@
 'use client';
 
-/* eslint-disable react-hooks/exhaustive-deps */
 import { useEffect, useRef, useState } from 'react';
+import type { Config } from '@imgly/background-removal';
 
 const images = [
-  'https://images.unsplash.com/photo-1656408308602-05835d990fb1?q=80&w=3200&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
-  'https://images.unsplash.com/photo-1686002359940-6a51b0d64f68?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1024&q=80',
-  'https://images.unsplash.com/photo-1590523278191-995cbcda646b?ixlib=rb-1.2.1&q=80&fm=jpg&crop=entropy&cs=tinysrgb&w=1080&fit=max&ixid=eyJhcHBfaWQiOjEyMDd9',
-  'https://images.unsplash.com/photo-1709248835088-03bb0946d6ab?q=80&w=3387&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D'
+  'https://images.unsplash.com/photo-1682687220742-aba13b6e50ba?auto=format&fit=crop&q=80&w=1000&ixlib=rb-4.0.3&ixid=M3wxMjA3fDF8MHxwaG90by1wYWdlfHx8fDE2OTYwNjk1NTN8fHx8&auto=compress&cs=tinysrgb',
+  'https://images.unsplash.com/photo-1682695796954-bad0d0f59ff1?auto=format&fit=crop&q=80&w=1000&ixlib=rb-4.0.3&ixid=M3wxMjA3fDF8MHxwaG90by1wYWdlfHx8fDE2OTYwNjk1OTN8fHx8&auto=compress&cs=tinysrgb',
+  'https://images.unsplash.com/photo-1682686581030-7fa4ea2b96c3?auto=format&fit=crop&q=80&w=1000&ixlib=rb-4.0.3&ixid=M3wxMjA3fDF8MHxwaG90by1wYWdlfHx8fDE2OTYwNjk2MTN8fHx8&auto=compress&cs=tinysrgb',
+  'https://images.unsplash.com/photo-1682695794816-7b9da18ed470?auto=format&fit=crop&q=80&w=1000&ixlib=rb-4.0.3&ixid=M3wxMjA3fDF8MHxwaG90by1wYWdlfHx8fDE2OTYwNjk2NDN8fHx8&auto=compress&cs=tinysrgb',
+  'https://images.unsplash.com/photo-1682686580186-b55d2a91053c?auto=format&fit=crop&q=80&w=1000&ixlib=rb-4.0.3&ixid=M3wxMjA3fDF8MHxwaG90by1wYWdlfHx8fDE2OTYwNjk2NzN8fHx8&auto=compress&cs=tinysrgb',
+  'https://images.unsplash.com/photo-1682695797873-aa4cb6edd613?auto=format&fit=crop&q=80&w=1000&ixlib=rb-4.0.3&ixid=M3wxMjA3fDF8MHxwaG90by1wYWdlfHx8fDE2OTYwNjk3MDN8fHx8&auto=compress&cs=tinysrgb',
+  'https://images.unsplash.com/photo-1682686571030-7fa4ea2b96c3?auto=format&fit=crop&q=80&w=1000&ixlib=rb-4.0.3&ixid=M3wxMjA3fDF8MHxwaG90by1wYWdlfHx8fDE2OTYwNjk3MzN8fHx8&auto=compress&cs=tinysrgb',
+  'https://images.unsplash.com/photo-1682687972501-1e58ab814714?auto=format&fit=crop&q=80&w=1000&ixlib=rb-4.0.3&ixid=M3wxMjA3fDF8MHxwaG90by1wYWdlfHx8fDE2OTYwNjk3NjN8fHx8&auto=compress&cs=tinysrgb',
+  'https://images.unsplash.com/photo-1682687982501-1e58ab814714?auto=format&fit=crop&q=80&w=1000&ixlib=rb-4.0.3&ixid=M3wxMjA3fDF8MHxwaG90by1wYWdlfHx8fDE2OTYwNjk3OTN8fHx8&auto=compress&cs=tinysrgb',
+  'https://images.unsplash.com/photo-1682686580186-b55d2a91053c?auto=format&fit=crop&q=80&w=1000&ixlib=rb-4.0.3&ixid=M3wxMjA3fDF8MHxwaG90by1wYWdlfHx8fDE2OTYwNjk4MjN8fHx8&auto=compress&cs=tinysrgb',
+  'https://images.unsplash.com/photo-1682686581030-7fa4ea2b96c3?auto=format&fit=crop&q=80&w=1000&ixlib=rb-4.0.3&ixid=M3wxMjA3fDF8MHxwaG90by1wYWdlfHx8fDE2OTYwNjk4NTN8fHx8&auto=compress&cs=tinysrgb',
+  'https://images.unsplash.com/photo-1682695797221-8164ff1fafc9?auto=format&fit=crop&q=80&w=1000&ixlib=rb-4.0.3&ixid=M3wxMjA3fDF8MHxwaG90by1wYWdlfHx8fDE2OTYwNjk4ODN8fHx8&auto=compress&cs=tinysrgb',
+  'https://images.unsplash.com/photo-1682695797873-aa4cb6edd613?auto=format&fit=crop&q=80&w=1000&ixlib=rb-4.0.3&ixid=M3wxMjA3fDF8MHxwaG90by1wYWdlfHx8fDE2OTYwNjk5MTN8fHx8&auto=compress&cs=tinysrgb',
+  'https://images.unsplash.com/photo-1682687982468-4584ff11f88a?auto=format&fit=crop&q=80&w=1000&ixlib=rb-4.0.3&ixid=M3wxMjA3fDF8MHxwaG90by1wYWdlfHx8fDE2OTYwNjk5NDN8fHx8&auto=compress&cs=tinysrgb',
+  'https://images.unsplash.com/photo-1682687982501-1e58ab814714?auto=format&fit=crop&q=80&w=1000&ixlib=rb-4.0.3&ixid=M3wxMjA3fDF8MHxwaG90by1wYWdlfHx8fDE2OTYwNjk5NzN8fHx8&auto=compress&cs=tinysrgb',
+  'https://images.unsplash.com/photo-1682686580186-b55d2a91053c?auto=format&fit=crop&q=80&w=1000&ixlib=rb-4.0.3&ixid=M3wxMjA3fDF8MHxwaG90by1wYWdlfHx8fDE2OTYwNjk5OTN8fHx8&auto=compress&cs=tinysrgb',
+  'https://images.unsplash.com/photo-1682686581030-7fa4ea2b96c3?auto=format&fit=crop&q=80&w=1000&ixlib=rb-4.0.3&ixid=M3wxMjA3fDF8MHxwaG90by1wYWdlfHx8fDE2OTYwNjEwMjN8fHx8&auto=compress&cs=tinysrgb',
+  'https://images.unsplash.com/photo-1682686571030-7fa4ea2b96c3?auto=format&fit=crop&q=80&w=1000&ixlib=rb-4.0.3&ixid=M3wxMjA3fDF8MHxwaG90by1wYWdlfHx8fDE2OTYwNjEwNTN8fHx8&auto=compress&cs=tinysrgb',
+  'https://images.unsplash.com/photo-1682686572502-1e58ab814714?auto=format&fit=crop&q=80&w=1000&ixlib=rb-4.0.3&ixid=M3wxMjA3fDF8MHxwaG90by1wYWdlfHx8fDE2OTYwNjEwODN8fHx8&auto=compress&cs=tinysrgb',
+  'https://images.unsplash.com/photo-1682686580186-b55d2a91053c?auto=format&fit=crop&q=80&w=1000&ixlib=rb-4.0.3&ixid=M3wxMjA3fDF8MHxwaG90by1wYWdlfHx8fDE2OTYwNjEwOTN8fHx8&auto=compress&cs=tinysrgb',
 ];
 
 const BackgroundRemoval = () => {
@@ -18,14 +34,15 @@ const BackgroundRemoval = () => {
   const [caption, setCaption] = useState('Click me to remove background');
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const config = {
+  // 👇👇👇 重点看这里：把 'wasm' 改成了正确的 'cpu' 👇👇👇
+  const config: Config = {
     debug: false,
     progress: (key: string, current: number, total: number) => {
       const [type, subtype] = key.split(':');
       setCaption(`${type} ${subtype} ${((current / total) * 100).toFixed(0)}%`);
     },
     rescale: true,
-    device: 'wasm' as const,  // 改为 wasm，强制使用 CPU 模式
+    device: 'cpu', // 修复：原来是 'wasm'，现在改为 'cpu'
     output: {
       quality: 0.8,
       format: 'image/png' as const
@@ -108,8 +125,8 @@ const BackgroundRemoval = () => {
       <header>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         {imageUrl && <img src={imageUrl} alt="result" />}
-        <p>{caption}</p>
-        <p>Processing: {seconds} s</p>
+        {caption}
+        Processing: {seconds} s
         <button disabled={isRunning} onClick={() => handleLoad('remove')}>
           Click me (removeBackground)
         </button>
