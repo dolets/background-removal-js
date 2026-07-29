@@ -14,11 +14,16 @@ const images = [
 const BackgroundRemoval = () => {
   const [imageUrl, setImageUrl] = useState<string>('');
   const [originalImage, setOriginalImage] = useState<string>('');
+  const [processedBlob, setProcessedBlob] = useState<Blob | null>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [seconds, setSeconds] = useState('0');
   const [startDate, setStartDate] = useState(Date.now());
   const [caption, setCaption] = useState('Click "Upload Image" to start');
   const [progress, setProgress] = useState(0);
+  const [backgroundColor, setBackgroundColor] = useState('#ffffff');
+  const [showColorPicker, setShowColorPicker] = useState(false);
+  const [customBackground, setCustomBackground] = useState<string | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const config = {
@@ -88,6 +93,8 @@ const BackgroundRemoval = () => {
       const url = event.target?.result as string;
       setImageUrl(url);
       setOriginalImage(url);
+      setProcessedBlob(null);
+      setCustomBackground(null);
       setCaption('Image uploaded. Click a button to process.');
       setProgress(0);
     };
@@ -106,6 +113,7 @@ const BackgroundRemoval = () => {
     setImageUrl(originalImage);
     setProgress(0);
     setCaption('Starting...');
+    setCustomBackground(null);
 
     try {
       const imgly = await import('@imgly/background-removal');
@@ -119,6 +127,7 @@ const BackgroundRemoval = () => {
         blob = await mod.applySegmentationMask(originalImage, mask, config);
       }
 
+      setProcessedBlob(blob);
       const resultUrl = URL.createObjectURL(blob);
       setImageUrl(resultUrl);
       setCaption('Processing complete!');
@@ -132,11 +141,87 @@ const BackgroundRemoval = () => {
     }
   };
 
-  return (
-    <div style={{ maxWidth: '800px', margin: '2rem auto', padding: '1rem', fontFamily: 'sans-serif' }}>
-      <h1 style={{ textAlign: 'center' }}>Background Removal Demo</h1>
+  // 合成背景：将抠好的图绘制到画布上，加上背景色或背景图
+  const compositeWithBackground = async () => {
+    if (!processedBlob) {
+      setCaption('Please process an image first.');
+      return;
+    }
 
-      <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
+    const img = new window.Image();
+    img.src = URL.createObjectURL(processedBlob);
+    await img.decode();
+
+    const canvas = canvasRef.current!;
+    canvas.width = img.width;
+    canvas.height = img.height;
+    const ctx = canvas.getContext('2d')!;
+
+    // 如果有自定义背景图，先绘制背景图
+    if (customBackground) {
+      const bgImg = new window.Image();
+      bgImg.src = customBackground;
+      await bgImg.decode();
+      // 背景图铺满画布（裁剪或拉伸）
+      ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+    } else {
+      // 否则绘制纯色背景
+      ctx.fillStyle = backgroundColor;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    // 再绘制前景（抠好的图）
+    ctx.drawImage(img, 0, 0);
+
+    // 将画布转为 Blob
+    canvas.toBlob((blob) => {
+      if (blob) {
+        const url = URL.createObjectURL(blob);
+        setImageUrl(url);
+        setCaption('Background replaced!');
+      }
+    }, 'image/png');
+  };
+
+  // 处理自定义背景图上传
+  const handleBackgroundUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const url = event.target?.result as string;
+      setCustomBackground(url);
+      setCaption('Custom background selected. Click "Apply Background" to see result.');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // 保存图片
+  const handleSave = () => {
+    if (!imageUrl) {
+      setCaption('No image to save.');
+      return;
+    }
+
+    const link = document.createElement('a');
+    link.href = imageUrl;
+    link.download = `background-removed-${Date.now()}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setCaption('Image saved!');
+  };
+
+  return (
+    <div style={{ maxWidth: '900px', margin: '2rem auto', padding: '1rem', fontFamily: 'sans-serif' }}>
+      <h1 style={{ textAlign: 'center' }}>Background Removal Tool</h1>
+
+      {/* 隐藏的 Canvas，用于合成背景 */}
+      <canvas ref={canvasRef} style={{ display: 'none' }} />
+
+      {/* 上传区域 */}
+      <div style={{ textAlign: 'center', marginBottom: '1rem', display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
         <label
           htmlFor="upload"
           style={{
@@ -150,15 +235,28 @@ const BackgroundRemoval = () => {
         >
           Upload Image
         </label>
-        <input
-          id="upload"
-          type="file"
-          accept="image/*"
-          onChange={handleUpload}
-          style={{ display: 'none' }}
-        />
+        <input id="upload" type="file" accept="image/*" onChange={handleUpload} style={{ display: 'none' }} />
+
+        {/* 保存按钮 */}
+        {imageUrl && (
+          <button
+            onClick={handleSave}
+            style={{
+              padding: '0.5rem 1rem',
+              backgroundColor: '#28a745',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '1rem',
+            }}
+          >
+            Save Image
+          </button>
+        )}
       </div>
 
+      {/* 图片展示 */}
       <div
         style={{
           textAlign: 'center',
@@ -182,6 +280,7 @@ const BackgroundRemoval = () => {
         )}
       </div>
 
+      {/* 状态 & 进度 */}
       <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
         <p style={{ fontWeight: 'bold' }}>{caption}</p>
         {isRunning && (
@@ -209,6 +308,7 @@ const BackgroundRemoval = () => {
         )}
       </div>
 
+      {/* 处理按钮 */}
       <div
         style={{
           textAlign: 'center',
@@ -216,6 +316,7 @@ const BackgroundRemoval = () => {
           display: 'flex',
           justifyContent: 'center',
           flexWrap: 'wrap',
+          marginBottom: '2rem',
         }}
       >
         <button
@@ -247,9 +348,96 @@ const BackgroundRemoval = () => {
             fontSize: '1rem',
           }}
         >
-          {isRunning ? 'Processing...' : 'Apply Segmentation Mask'}
+          {isRunning ? 'Processing...' : 'Segment Foreground'}
         </button>
       </div>
+
+      {/* 背景替换区域（只有在处理完成后才显示） */}
+      {processedBlob && (
+        <div
+          style={{
+            border: '1px solid #ddd',
+            borderRadius: '8px',
+            padding: '1.5rem',
+            marginTop: '1rem',
+          }}
+        >
+          <h3 style={{ textAlign: 'center', marginTop: 0 }}>Replace Background</h3>
+
+          {/* 纯色背景 */}
+          <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
+            <p style={{ marginBottom: '0.5rem' }}>Solid Color:</p>
+            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+              {['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff', '#ffffff', '#000000', '#808080'].map(
+                (color) => (
+                  <div
+                    key={color}
+                    onClick={() => {
+                      setBackgroundColor(color);
+                      setCustomBackground(null);
+                    }}
+                    style={{
+                      width: '30px',
+                      height: '30px',
+                      backgroundColor: color,
+                      borderRadius: '50%',
+                      cursor: 'pointer',
+                      border: backgroundColor === color ? '3px solid #333' : '2px solid transparent',
+                      display: 'inline-block',
+                    }}
+                  />
+                )
+              )}
+              <input
+                type="color"
+                value={backgroundColor}
+                onChange={(e) => {
+                  setBackgroundColor(e.target.value);
+                  setCustomBackground(null);
+                }}
+                style={{ width: '30px', height: '30px', cursor: 'pointer', border: 'none' }}
+              />
+            </div>
+          </div>
+
+          {/* 自定义背景图 */}
+          <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
+            <p style={{ marginBottom: '0.5rem' }}>Or upload a custom background image:</p>
+            <label
+              htmlFor="bg-upload"
+              style={{
+                padding: '0.5rem 1rem',
+                backgroundColor: '#6f42c1',
+                color: 'white',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                display: 'inline-block',
+              }}
+            >
+              Choose Background Image
+            </label>
+            <input id="bg-upload" type="file" accept="image/*" onChange={handleBackgroundUpload} style={{ display: 'none' }} />
+          </div>
+
+          {/* 应用背景按钮 */}
+          <div style={{ textAlign: 'center' }}>
+            <button
+              onClick={compositeWithBackground}
+              style={{
+                padding: '0.75rem 2rem',
+                backgroundColor: '#fd7e14',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '1rem',
+              }}
+            >
+              Apply Background
+            </button>
+          </div>
+        </div>
+      )}
 
       <p style={{ textAlign: 'center', fontSize: '0.875rem', color: '#888', marginTop: '2rem' }}>
         Powered by @imgly/background-removal | Running on CPU mode
