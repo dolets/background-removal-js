@@ -22,6 +22,11 @@ body {
   font-family: Arial, Helvetica, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  margin: 0;
+  /* 移除 place-items: center，否则手机端会居中挤压 */
+  /* display: flex; */
+  /* place-items: center; */
+  min-height: 100vh;
 }
 
 * {
@@ -35,12 +40,6 @@ a {
   text-decoration: none;
 }
 
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
-  }
-}
-
 a {
   font-weight: 500;
   color: #646cff;
@@ -51,16 +50,11 @@ a:hover {
   color: #535bf2;
 }
 
+/* 移除 max-height: 60vh，否则图片会被压扁 */
 img {
-  max-height: 60vh;
-}
-
-body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  /* min-width: 320px; */
-  /* max-height: 1vh; */
+  /* max-height: 60vh; */
+  max-width: 100%;
+  height: auto;
 }
 
 h1 {
@@ -93,11 +87,12 @@ button:focus-visible {
   padding: 2em;
 }
 
-#app {
+/* 移除 #app 的固定边距，避免手机端溢出 */
+/* #app {
   margin: 0 auto;
   padding: 2rem;
   text-align: center;
-}
+} */
 
 @media (prefers-color-scheme: light) {
   :root {
@@ -111,5 +106,17 @@ button:focus-visible {
 
   button {
     background-color: #f9f9f9;
+  }
+}
+
+/* 新增：手机端优化 */
+@media (max-width: 600px) {
+  h1 {
+    font-size: 2em;
+  }
+  
+  button {
+    padding: 0.8em 1.5em;
+    font-size: 1.1em;
   }
 }

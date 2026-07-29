@@ -235,7 +235,14 @@ const BackgroundRemoval = () => {
   };
 
   return (
-    <div style={{ maxWidth: '800px', margin: '2rem auto', padding: '1rem', fontFamily: 'sans-serif' }}>
+    <div style={{ 
+     maxWidth: '800px', 
+     margin: '2rem auto', 
+     padding: '1rem', 
+     fontFamily: 'sans-serif',
+     width: '100%',
+     boxSizing: 'border-box'
+    }}>
       <h1 style={{ textAlign: 'center' }}>Background Removal Demo</h1>
 
       <canvas ref={canvasRef} style={{ display: 'none' }} />
