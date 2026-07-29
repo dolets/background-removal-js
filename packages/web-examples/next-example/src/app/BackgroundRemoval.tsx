@@ -157,12 +157,11 @@ const BackgroundRemoval = () => {
     setCaption('Image saved!');
   };
 
-  // ✅ 修复后的背景图上传函数
+  // 背景图上传函数
   const handleBackgroundUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // 限制文件类型为图片
     if (!file.type.startsWith('image/')) {
       setCaption('Please select an image file.');
       return;
@@ -174,7 +173,7 @@ const BackgroundRemoval = () => {
       const url = event.target?.result as string;
       console.log('Background image loaded:', url.substring(0, 50) + '...');
       setCustomBackground(url);
-      setBackgroundColor('#ffffff'); // 重置纯色选择
+      setBackgroundColor('#ffffff');
       setCaption('Custom background selected! Click "Apply Background" to see result.');
     };
 
@@ -183,8 +182,6 @@ const BackgroundRemoval = () => {
     };
 
     reader.readAsDataURL(file);
-    
-    // 重置 input 值，允许重复选择同一文件
     e.target.value = '';
   };
 
@@ -248,21 +245,23 @@ const BackgroundRemoval = () => {
       <canvas ref={canvasRef} style={{ display: 'none' }} />
 
       <div style={{ textAlign: 'center', marginBottom: '1rem', display: 'flex', gap: '1rem', justifyContent: 'center' }}>
-        <label
-          htmlFor="upload"
+        {/* ✅ 修改：Upload Image 从 label 改为 button */}
+        <button
+          onClick={() => document.getElementById('upload-input')?.click()}
           style={{
             padding: '0.5rem 1rem',
             backgroundColor: '#0070f3',
             color: 'white',
+            border: 'none',
             borderRadius: '4px',
             cursor: 'pointer',
-            display: 'inline-block',
+            fontSize: '1rem',
           }}
         >
           Upload Image
-        </label>
+        </button>
         <input
-          id="upload"
+          id="upload-input"
           type="file"
           accept="image/*"
           onChange={handleUpload}
@@ -427,21 +426,23 @@ const BackgroundRemoval = () => {
 
           <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
             <p style={{ marginBottom: '0.5rem' }}>Or upload a custom background:</p>
-            <label
-              htmlFor="bg-upload"
+            {/* ✅ 修改：Choose Image 从 label 改为 button */}
+            <button
+              onClick={() => document.getElementById('bg-upload-input')?.click()}
               style={{
                 padding: '0.5rem 1rem',
                 backgroundColor: '#6f42c1',
                 color: 'white',
+                border: 'none',
                 borderRadius: '4px',
                 cursor: 'pointer',
-                display: 'inline-block',
+                fontSize: '1rem',
               }}
             >
               Choose Image
-            </label>
+            </button>
             <input
-              id="bg-upload"
+              id="bg-upload-input"
               type="file"
               accept="image/*"
               onChange={handleBackgroundUpload}
